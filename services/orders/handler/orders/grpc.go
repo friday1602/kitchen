@@ -18,7 +18,7 @@ func NewGrpcOrdersService(grpc *grpc.Server, orderService types.OrderService) {
 		orderService: orderService,
 	}
 
-	// register the OrederServiceServer
+	// register the OrderServiceServer
 	orders.RegisterOrderServiceServer(grpc, grpcHandler)
 }
 
