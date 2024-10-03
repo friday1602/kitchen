@@ -4,6 +4,7 @@ option go_package = "github.com/friday1602/kitchen/common/orders";
 
 service OrderService {
     rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) {}
+    rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {}
 }
 
 message Order {
