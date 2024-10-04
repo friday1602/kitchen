@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/friday1602/kitchen/services/common/genproto/orders"
-	"github.com/friday1602/kitchen/services/common/utils"
+	"github.com/gofiber/fiber/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -21,35 +21,29 @@ func newHttpServer(addr string) *httpServer {
 }
 
 func (s *httpServer) Run() error {
-	mux := http.NewServeMux()
+	mux := fiber.New()
 
 	conn := newGrpcClient(":50051")
 	defer conn.Close()
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		c := orders.NewOrderServiceClient(conn)
-		ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	mux.Get("/", func(c *fiber.Ctx) error {
+		cGRPC := orders.NewOrderServiceClient(conn)
+		ctx, cancel := context.WithTimeout(c.Context(), time.Second)
 		defer cancel()
-		_, err := c.CreateOrder(ctx, &orders.CreateOrderRequest{
+		_, err := cGRPC.CreateOrder(ctx, &orders.CreateOrderRequest{
 			CustomerID: 55,
 			ProductID:  55,
 			Quantity:   11,
 		})
 		if err != nil {
-			utils.WriteError(w, http.StatusInternalServerError, err)
-			return
+			return fiber.NewError(http.StatusInternalServerError, err.Error())
 		}
-		resp, err := c.GetOrder(ctx, &orders.GetOrderRequest{
+		resp, err := cGRPC.GetOrder(ctx, &orders.GetOrderRequest{
 			CustomerID: 55,
 		})
-		if err = utils.WriteJson(w, http.StatusOK, resp.GetOrders()); err != nil {
-			utils.WriteError(w, http.StatusInternalServerError, err)
-			return
-		}
-
+		return c.JSON(resp)
 	})
-	log.Println("starting server on", s.addr)
-	return http.ListenAndServe(s.addr, mux)
+	return mux.Listen(s.addr)
 }
 
 func newGrpcClient(addr string) *grpc.ClientConn {

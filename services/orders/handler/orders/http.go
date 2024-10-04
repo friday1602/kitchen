@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/friday1602/kitchen/services/common/genproto/orders"
-	"github.com/friday1602/kitchen/services/common/utils"
 	"github.com/friday1602/kitchen/services/orders/types"
+	"github.com/gofiber/fiber/v2"
 )
 
 type OrdersHttpHandler struct {
@@ -20,15 +20,14 @@ func NewHttpOrderHandler(orderService types.OrderService) *OrdersHttpHandler {
 	return handler
 }
 
-func (h *OrdersHttpHandler) RegisterRouter(router *http.ServeMux) {
-	router.HandleFunc("POST /orders", h.CreateOrder)
+func (h *OrdersHttpHandler) RegisterRouter(router *fiber.App) {
+	router.Post("/orders", h.CreateOrder)
 }
 
-func (h *OrdersHttpHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
+func (h *OrdersHttpHandler) CreateOrder(c *fiber.Ctx) error {
 	var req orders.CreateOrderRequest
-	if err := utils.ParseJson(r, &req); err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
-		return
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}
 
 	order := orders.Order{
@@ -38,12 +37,11 @@ func (h *OrdersHttpHandler) CreateOrder(w http.ResponseWriter, r *http.Request) 
 		Quantity:   req.Quantity,
 	}
 
-	if err := h.orderService.CreateOrder(r.Context(), &order); err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err)
-		return
+	if err := h.orderService.CreateOrder(c.Context(), &order); err != nil {
+		return fiber.NewError(http.StatusInternalServerError, err.Error())
 	}
 
 	res := &orders.CreateOrderResponse{Status: "success"}
-	utils.WriteJson(w, http.StatusOK, res)
+	return c.JSON(res)
 
 }

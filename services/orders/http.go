@@ -1,11 +1,9 @@
 package main
 
 import (
-	"log"
-	"net/http"
-
 	handler "github.com/friday1602/kitchen/services/orders/handler/orders"
 	"github.com/friday1602/kitchen/services/orders/service"
+	"github.com/gofiber/fiber/v2"
 )
 
 type httpServer struct {
@@ -17,11 +15,10 @@ func newHttpServer(addr string) *httpServer {
 }
 
 func (s *httpServer) Run() error {
-	router := http.NewServeMux()
+	router := fiber.New()
 	orderService := service.NewOrderService()
 	orderHandler := handler.NewHttpOrderHandler(orderService)
 	orderHandler.RegisterRouter(router)
 
-	log.Println("Starting server on", s.addr)
-	return http.ListenAndServe(s.addr, router)
+	return router.Listen(s.addr)
 }
